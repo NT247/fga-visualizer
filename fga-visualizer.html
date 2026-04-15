@@ -1,0 +1,838 @@
+<!DOCTYPE html>
+<html lang="en" data-theme="dark">
+<head>
+<meta charset="UTF-8"/>
+<meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+<title>FGA Model Visualizer · Nivedita Thapa</title>
+<link rel="preconnect" href="https://fonts.googleapis.com"/>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&display=swap" rel="stylesheet"/>
+<script src="https://cdn.jsdelivr.net/npm/react@18/umd/react.development.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/react-dom@18/umd/react-dom.development.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/@babel/standalone/babel.min.js"></script>
+<style>
+*, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+html { scroll-behavior: smooth; }
+
+/* ── Theme variables ─────────────────────────────────── */
+:root {
+  --bg:          #0A1628;
+  --bg2:         #0D1E35;
+  --surface:     rgba(255,255,255,0.04);
+  --border:      rgba(255,255,255,0.08);
+  --border2:     rgba(255,255,255,0.04);
+  --text1:       #F1F5F9;
+  --text2:       #94A3B8;
+  --text3:       #64748B;
+  --accent1:     #818CF8;
+  --accent2:     #38BDF8;
+  --badge-bg:    rgba(129,140,248,0.1);
+  --badge-text:  #818CF8;
+  --badge-border:rgba(129,140,248,0.25);
+  --grid-line:   rgba(255,255,255,0.04);
+  --spot-color:  rgba(148,163,184,0.07);
+  --code-bg:     rgba(0,0,0,0.3);
+  --code-border: rgba(255,255,255,0.1);
+  --nav-bg:      rgba(10,22,40,0.9);
+  --tool-bg:     #F8FAFC;
+  --tool-panel:  #ffffff;
+  --tool-border: #E4E4E7;
+  --tool-text:   #09090B;
+  --tool-muted:  #71717A;
+}
+
+[data-theme="light"] {
+  --bg:          #ffffff;
+  --bg2:         #F8FAFC;
+  --surface:     #F8FAFC;
+  --border:      #E2E8F0;
+  --border2:     #F1F5F9;
+  --text1:       #0F172A;
+  --text2:       #475569;
+  --text3:       #94A3B8;
+  --accent1:     #6366F1;
+  --accent2:     #0EA5E9;
+  --badge-bg:    #EEF2FF;
+  --badge-text:  #4338CA;
+  --badge-border:#C7D2FE;
+  --grid-line:   rgba(0,0,0,0.04);
+  --spot-color:  rgba(99,102,241,0.04);
+  --code-bg:     #0F172A;
+  --code-border: #1E293B;
+  --nav-bg:      rgba(255,255,255,0.9);
+  --tool-bg:     #F8FAFC;
+  --tool-panel:  #ffffff;
+  --tool-border: #E4E4E7;
+  --tool-text:   #09090B;
+  --tool-muted:  #71717A;
+}
+
+body {
+  font-family: 'Inter', -apple-system, sans-serif;
+  background: var(--bg);
+  color: var(--text1);
+  overflow-x: hidden;
+  transition: background 0.3s, color 0.3s;
+}
+
+/* ── Nav ──────────────────────────────────────────────── */
+nav {
+  position: fixed; top: 0; left: 0; right: 0; z-index: 100;
+  height: 54px;
+  display: flex; align-items: center; justify-content: space-between;
+  padding: 0 32px;
+  background: var(--nav-bg);
+  backdrop-filter: blur(16px);
+  border-bottom: 1px solid var(--border);
+}
+.nav-left { display: flex; align-items: center; gap: 10px; }
+.nav-logo {
+  width: 26px; height: 26px; border-radius: 6px;
+  background: linear-gradient(135deg, #6366F1, #38BDF8);
+  display: flex; align-items: center; justify-content: center;
+  font-size: 12px; font-weight: 700; color: #fff;
+}
+.nav-title { font-size: 14px; font-weight: 600; color: var(--text1); letter-spacing: -0.3px; }
+.nav-right { display: flex; align-items: center; gap: 12px; }
+.theme-toggle {
+  font-size: 11px; font-weight: 500;
+  padding: 5px 12px; border-radius: 999px;
+  border: 1px solid var(--border);
+  background: var(--surface);
+  color: var(--text2);
+  cursor: pointer;
+  transition: all 0.2s;
+  font-family: 'Inter', sans-serif;
+}
+.theme-toggle:hover { border-color: var(--accent1); color: var(--accent1); }
+
+/* ── Hero ─────────────────────────────────────────────── */
+.hero {
+  min-height: 100vh;
+  padding: 120px 64px 80px;
+  position: relative;
+  overflow: hidden;
+  background: var(--bg);
+}
+
+.hero-grid {
+  position: absolute; inset: 0; pointer-events: none;
+  background-image:
+    linear-gradient(var(--grid-line) 1px, transparent 1px),
+    linear-gradient(90deg, var(--grid-line) 1px, transparent 1px);
+  background-size: 120px 120px;
+}
+
+.hero-spotlight {
+  position: absolute; top: -120px; left: 50%; transform: translateX(-50%);
+  width: 700px; height: 700px; pointer-events: none;
+  background: radial-gradient(ellipse at 50% 0%, var(--spot-color) 0%, transparent 65%);
+}
+
+[data-theme="dark"] .hero-spotlight {
+  background: radial-gradient(ellipse at 50% 0%,
+    rgba(129,140,248,0.12) 0%,
+    rgba(56,189,248,0.05) 40%,
+    transparent 70%);
+}
+
+.hero-inner {
+  max-width: 1200px; margin: 0 auto;
+  display: flex; align-items: center; gap: 80px;
+  position: relative; z-index: 1;
+}
+
+.hero-left { flex: 1; min-width: 0; }
+.hero-right { flex-shrink: 0; width: 420px; }
+
+.badge {
+  display: inline-flex; align-items: center; gap: 7px;
+  padding: 5px 14px; border-radius: 999px;
+  border: 1px solid var(--badge-border);
+  background: var(--badge-bg);
+  font-size: 11.5px; font-weight: 500; color: var(--badge-text);
+  margin-bottom: 24px;
+}
+.badge-dot { width: 5px; height: 5px; border-radius: 50%; background: var(--badge-text); }
+
+.hero-h1 {
+  font-size: clamp(38px, 5.5vw, 64px);
+  font-weight: 800;
+  line-height: 1.05;
+  letter-spacing: -2.5px;
+  color: var(--text1);
+  margin-bottom: 20px;
+}
+.hero-h1 .grad {
+  background: linear-gradient(135deg, var(--accent1) 0%, var(--accent2) 100%);
+  -webkit-background-clip: text; -webkit-text-fill-color: transparent;
+  background-clip: text;
+}
+
+.hero-sub {
+  font-size: 16px; font-weight: 400; color: var(--text2);
+  line-height: 1.75; max-width: 520px; margin-bottom: 40px;
+}
+
+.hero-cards {
+  display: flex; flex-direction: column; gap: 10px; margin-bottom: 40px;
+}
+.hero-card {
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: 10px; padding: 16px 18px;
+}
+.hero-card-label {
+  font-size: 10px; font-weight: 700; color: var(--accent1);
+  text-transform: uppercase; letter-spacing: 1.2px; margin-bottom: 5px;
+}
+.hero-card-text { font-size: 13px; color: var(--text2); line-height: 1.6; }
+
+.hero-person {
+  display: flex; align-items: center; gap: 14px;
+  padding: 14px 18px;
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: 10px;
+}
+.hero-person-info {}
+.hero-person-name { font-size: 14px; font-weight: 600; color: var(--text1); }
+.hero-person-role { font-size: 12px; color: var(--text2); margin-top: 2px; }
+.hero-person-email {
+  font-size: 11.5px; color: var(--accent1);
+  margin-top: 3px; font-weight: 500;
+}
+
+.scroll-cta {
+  display: inline-flex; flex-direction: column; align-items: center; gap: 6px;
+  font-size: 11.5px; color: var(--text3); text-decoration: none;
+  transition: color 0.2s; margin-top: 40px;
+}
+.scroll-cta:hover { color: var(--accent1); }
+.scroll-arrow {
+  width: 28px; height: 28px; border-radius: 50%;
+  border: 1px solid var(--border); display: flex;
+  align-items: center; justify-content: center; font-size: 13px;
+  transition: border-color 0.2s, transform 0.2s;
+}
+.scroll-cta:hover .scroll-arrow { border-color: var(--accent1); transform: translateY(2px); }
+
+/* ── Code preview (hero right) ───────────────────────── */
+.code-preview {
+  border-radius: 12px; overflow: hidden;
+  border: 1px solid var(--code-border);
+  background: var(--code-bg);
+  box-shadow: 0 24px 60px rgba(0,0,0,0.4), 0 0 0 1px var(--code-border);
+  font-family: 'Courier New', monospace;
+}
+[data-theme="light"] .code-preview {
+  box-shadow: 0 24px 60px rgba(0,0,0,0.12), 0 0 0 1px var(--code-border);
+}
+.code-header {
+  background: rgba(255,255,255,0.05);
+  border-bottom: 1px solid var(--code-border);
+  padding: 10px 14px;
+  display: flex; align-items: center; gap: 10px;
+}
+.code-dots { display: flex; gap: 5px; }
+.dot { width: 10px; height: 10px; border-radius: 50%; }
+.dot-r { background: #FF5F57; }
+.dot-y { background: #FFBD2E; }
+.dot-g { background: #28C840; }
+.code-file { font-size: 11px; color: rgba(255,255,255,0.35); font-family: 'Courier New', monospace; }
+.code-body {
+  padding: 18px 20px;
+  font-size: 11.5px; line-height: 1.85;
+  white-space: pre; overflow: hidden;
+  color: rgba(255,255,255,0.5);
+}
+.c-comment { color: #4B5563; }
+.c-key     { color: #818CF8; }
+.c-type    { color: #38BDF8; }
+.c-val     { color: #34D399; }
+.c-rel     { color: #F9A8D4; }
+.c-inherit { color: #FCD34D; }
+.c-str     { color: #FB923C; }
+
+/* ── Section divider ─────────────────────────────────── */
+.section-divider {
+  height: 1px;
+  background: linear-gradient(90deg, transparent, var(--border), transparent);
+}
+
+/* ── Tool section ────────────────────────────────────── */
+.tool-section {
+  background: var(--tool-bg);
+  padding: 72px 32px 80px;
+  transition: background 0.3s;
+}
+.tool-header {
+  max-width: 1200px; margin: 0 auto 32px;
+}
+.tool-section-label {
+  display: flex; align-items: center; gap: 12px; margin-bottom: 16px;
+}
+.tool-tag {
+  font-size: 11px; font-weight: 700; color: #6366F1;
+  text-transform: uppercase; letter-spacing: 1.2px; white-space: nowrap;
+}
+.tool-line { flex: 1; height: 1px; background: var(--tool-border); }
+.tool-head {
+  font-size: 26px; font-weight: 700; color: var(--tool-text);
+  letter-spacing: -0.5px; margin-bottom: 6px;
+}
+.tool-desc { font-size: 13.5px; color: var(--tool-muted); }
+
+#tool-root {
+  height: 680px; max-width: 1200px; margin: 0 auto;
+  border-radius: 12px; overflow: hidden;
+  border: 1px solid var(--tool-border);
+  box-shadow: 0 1px 3px rgba(0,0,0,0.06), 0 16px 40px -8px rgba(0,0,0,0.08);
+}
+
+/* ── Footer ──────────────────────────────────────────── */
+footer {
+  background: var(--bg);
+  border-top: 1px solid var(--border);
+  padding: 20px 32px;
+  display: flex; align-items: center; justify-content: space-between;
+  transition: background 0.3s;
+}
+.footer-note { font-size: 11.5px; color: var(--text3); }
+.footer-right { display: flex; align-items: center; gap: 16px; }
+.footer-link { font-size: 12px; color: var(--accent1); text-decoration: none; }
+.footer-link:hover { color: var(--accent2); }
+.footer-tag {
+  font-size: 11px; color: var(--text3);
+  border: 1px solid var(--border); border-radius: 999px; padding: 3px 10px;
+}
+
+/* ── Tool inner styles ───────────────────────────────── */
+::-webkit-scrollbar { width: 5px; height: 5px; }
+::-webkit-scrollbar-track { background: transparent; }
+::-webkit-scrollbar-thumb { background: #D4D4D8; border-radius: 3px; }
+input, select {
+  font-family: 'Inter', sans-serif; font-size: 12px; border-radius: 6px;
+  border: 1px solid #D4D4D8; background: #fff; color: #09090B;
+  padding: 5px 9px; outline: none; transition: border-color 0.15s, box-shadow 0.15s;
+}
+input:focus, select:focus { border-color: #6366F1; box-shadow: 0 0 0 3px rgba(99,102,241,0.1); }
+input::placeholder { color: #A1A1AA; }
+button {
+  font-family: 'Inter', sans-serif; cursor: pointer; border-radius: 6px;
+  border: 1px solid #D4D4D8; background: #F4F4F5; color: #09090B;
+  font-size: 12px; padding: 5px 12px; transition: all 0.12s;
+}
+button:hover { background: #E4E4E7; border-color: #A1A1AA; }
+button:active { transform: scale(0.98); }
+.tab { border:none; border-radius:0; background:none; font-size:12px; font-weight:500; color:#71717A; padding:9px 15px; border-bottom:2px solid transparent; }
+.tab:hover { background:none; color:#09090B; }
+.tab.on { color:#09090B; border-bottom-color:#6366F1; }
+.lbl { font-size:10px; color:#A1A1AA; text-transform:uppercase; letter-spacing:0.7px; margin-bottom:5px; }
+
+@media (max-width: 900px) {
+  .hero-inner { flex-direction: column; }
+  .hero-right { width: 100%; }
+}
+</style>
+</head>
+<body>
+
+<!-- ── NAV ──────────────────────────────────────────────────────── -->
+<nav>
+  <div class="nav-left">
+    <div class="nav-logo">W</div>
+    <span class="nav-title">FGA Model Visualizer</span>
+  </div>
+  <div class="nav-right">
+    <div style="display:flex;align-items:center;gap:6px;padding:5px 14px;border-radius:999px;border:1px solid var(--border);background:var(--surface);">
+      <div style="width:22px;height:22px;border-radius:50%;background:linear-gradient(135deg,#6366F1,#38BDF8);display:flex;align-items:center;justify-content:center;font-size:9px;font-weight:700;color:#fff;flex-shrink:0;">NT</div>
+      <div>
+        <div style="font-size:12px;font-weight:600;color:var(--text1);line-height:1.2;">Nivedita Thapa</div>
+        <div style="font-size:10.5px;color:var(--text3);line-height:1.2;">niveditathapa.24@gmail.com</div>
+      </div>
+    </div>
+    <button class="theme-toggle" onclick="toggleTheme()" id="theme-btn">☀ Light mode</button>
+  </div>
+</nav>
+
+<!-- ── HERO ─────────────────────────────────────────────────────── -->
+<section class="hero">
+  <div class="hero-grid"></div>
+  <div class="hero-spotlight"></div>
+
+  <div class="hero-inner">
+    <!-- Left: text -->
+    <div class="hero-left">
+      <div class="badge">
+        <div class="badge-dot"></div>
+        WorkOS Fine-Grained Authorization · 2026
+      </div>
+
+      <h1 class="hero-h1">
+        FGA should be<br/><span class="grad">visual first.</span>
+      </h1>
+
+      <p class="hero-sub">
+        The biggest friction in FGA adoption isn't the API. Developers know they need fine-grained permissions but can't visualize their resource hierarchy before they can define it. This tool closes that gap.
+      </p>
+
+      <div class="hero-cards">
+        <div class="hero-card">
+          <div class="hero-card-label">The problem</div>
+          <div class="hero-card-text">Developers struggle to map product structure to a permission hierarchy. The mental model gap blocks FGA adoption.</div>
+        </div>
+        <div class="hero-card">
+          <div class="hero-card-label">The tool</div>
+          <div class="hero-card-text">Design resource types and relations visually, see your hierarchy as a live tree, and get WorkOS FGA schema output. Switch to the permission tester to evaluate human vs. AI agent access.</div>
+        </div>
+        <div class="hero-card">
+          <div class="hero-card-label">Why agent auth matters</div>
+          <div class="hero-card-text">FGA supports AI agent subjects natively. The permission tester shows exactly how human and agent access diverge and what WorkOS requires to bridge the gap.</div>
+        </div>
+      </div>
+
+      <a href="#tool" class="scroll-cta">
+        <span>Explore the tool</span>
+        <div class="scroll-arrow">↓</div>
+      </a>
+    </div>
+
+    <!-- Right: code preview -->
+    <div class="hero-right">
+      <div class="code-preview">
+        <div class="code-header">
+          <div class="code-dots">
+            <div class="dot dot-r"></div>
+            <div class="dot dot-y"></div>
+            <div class="dot dot-g"></div>
+          </div>
+          <span class="code-file">fga-schema.yaml</span>
+        </div>
+        <div class="code-body"><span class="c-comment"># WorkOS Fine-Grained Authorization</span>
+<span class="c-comment"># Docs: workos.com/docs/fga</span>
+
+<span class="c-key">version:</span> <span class="c-str">"1"</span>
+
+<span class="c-key">resource_types:</span>
+
+  <span class="c-comment"># Base subject types</span>
+  - <span class="c-key">type:</span> <span class="c-type">user</span>
+
+  - <span class="c-key">type:</span> <span class="c-type">ai-agent</span>
+    <span class="c-key">relations:</span>
+      - <span class="c-key">name:</span> <span class="c-rel">principal</span>
+        <span class="c-key">subjects:</span> [<span class="c-type">user</span>]
+
+  <span class="c-comment"># Resource hierarchy</span>
+  - <span class="c-key">type:</span> <span class="c-type">organization</span>
+    <span class="c-key">relations:</span>
+      - <span class="c-key">name:</span> <span class="c-rel">admin</span>
+        <span class="c-key">subjects:</span> [<span class="c-type">user</span>, <span class="c-type">ai-agent</span>]
+      - <span class="c-key">name:</span> <span class="c-rel">member</span>
+        <span class="c-key">subjects:</span> [<span class="c-type">user</span>, <span class="c-type">ai-agent</span>]
+        <span class="c-key">inherit_if:</span> <span class="c-inherit">admin</span>
+
+  - <span class="c-key">type:</span> <span class="c-type">workspace</span>
+    <span class="c-key">inherit_from:</span> <span class="c-inherit">organization</span>
+    <span class="c-key">relations:</span>
+      - <span class="c-key">name:</span> <span class="c-rel">owner</span>
+        <span class="c-key">subjects:</span> [<span class="c-type">user</span>, <span class="c-type">organization:admin</span>]
+      - <span class="c-key">name:</span> <span class="c-rel">editor</span>
+        <span class="c-key">inherit_if:</span> <span class="c-inherit">owner</span>
+      - <span class="c-key">name:</span> <span class="c-rel">viewer</span>
+        <span class="c-key">inherit_if:</span> <span class="c-inherit">editor</span>
+
+  - <span class="c-key">type:</span> <span class="c-type">document</span>
+    <span class="c-key">inherit_from:</span> <span class="c-inherit">workspace</span>
+    <span class="c-key">relations:</span>
+      - <span class="c-key">name:</span> <span class="c-rel">owner</span>
+      - <span class="c-key">name:</span> <span class="c-rel">editor</span>
+        <span class="c-key">inherit_if:</span> <span class="c-inherit">owner</span>
+      - <span class="c-key">name:</span> <span class="c-rel">viewer</span>
+        <span class="c-key">inherit_if:</span> <span class="c-inherit">editor</span></div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<div class="section-divider"></div>
+
+<!-- ── TOOL ─────────────────────────────────────────────────────── -->
+<section class="tool-section" id="tool">
+  <div class="tool-header">
+    <div class="tool-section-label">
+      <span class="tool-tag">Interactive tool</span>
+      <div class="tool-line"></div>
+    </div>
+    <div class="tool-head">Build your model. Get your schema.</div>
+    <div class="tool-desc">Design resource types and relations in the left panel, visualize the hierarchy in the center, copy the schema or test permissions on the right.</div>
+  </div>
+  <div id="tool-root"></div>
+</section>
+
+<!-- ── FOOTER ────────────────────────────────────────────────────── -->
+<footer>
+  <div style="display:flex;align-items:center;gap:16px;">
+    <div style="border-right:1px solid var(--border);padding-right:16px;">
+      <div style="font-size:13px;font-weight:600;color:var(--text1);margin-bottom:2px;">Nivedita Thapa</div>
+      <div style="font-size:11.5px;color:var(--text2);margin-bottom:2px;">PM · Auth, RBAC and enterprise developer products from 0 to production</div>
+      <div style="font-size:11.5px;color:var(--accent1);font-weight:500;">niveditathapa.24@gmail.com</div>
+    </div>
+    <div class="footer-note">
+      Built as a prototype for the WorkOS PM role. Not an official WorkOS product.
+    </div>
+  </div>
+  <div class="footer-right">
+    <a href="https://workos.com/docs/fga" target="_blank" class="footer-link">workos.com/docs/fga</a>
+    <span class="footer-tag">Prototype · April 2026</span>
+  </div>
+</footer>
+
+<script>
+function toggleTheme() {
+  const html = document.documentElement;
+  const isDark = html.getAttribute('data-theme') === 'dark';
+  html.setAttribute('data-theme', isDark ? 'light' : 'dark');
+  document.getElementById('theme-btn').textContent = isDark ? '🌙 Dark mode' : '☀ Light mode';
+}
+</script>
+
+<!-- ── REACT TOOL ─────────────────────────────────────────────────── -->
+<script type="text/babel">
+const { useState } = React;
+
+const PAL = [
+  { fill:'#EEF2FF', border:'#6366F1', text:'#4338CA', dot:'#6366F1' },
+  { fill:'#F0FDF4', border:'#16A34A', text:'#15803D', dot:'#22C55E' },
+  { fill:'#FAF5FF', border:'#7C3AED', text:'#6D28D9', dot:'#A855F7' },
+  { fill:'#FFF7ED', border:'#D97706', text:'#B45309', dot:'#F59E0B' },
+  { fill:'#F0FDFA', border:'#0D9488', text:'#0F766E', dot:'#14B8A6' },
+];
+
+const NW=196, HH=35, RH=21, FH=10, VG=80, HG=48;
+
+const DEF = [
+  { id:'organization', name:'Organization', par:null, rels:[{n:'admin',f:null},{n:'member',f:'admin'}] },
+  { id:'workspace', name:'Workspace', par:'organization', rels:[{n:'owner',f:null},{n:'editor',f:'owner'},{n:'viewer',f:'editor'}] },
+  { id:'project', name:'Project', par:'workspace', rels:[{n:'owner',f:null},{n:'editor',f:'owner'},{n:'viewer',f:'editor'}] },
+  { id:'document', name:'Document', par:'project', rels:[{n:'owner',f:null},{n:'editor',f:'owner'},{n:'viewer',f:'editor'}] },
+];
+
+function nh(r){ return HH + r.rels.length*RH + FH; }
+
+function buildLayout(rs) {
+  const ch={}, roots=[];
+  rs.forEach(r=>{ ch[r.id]=[]; });
+  rs.forEach(r=>{ const hp=r.par&&rs.find(x=>x.id===r.par); if(hp) ch[r.par].push(r.id); else roots.push(r.id); });
+  const dep={}, q=roots.map(id=>({id,d:0}));
+  while(q.length){ const {id,d}=q.shift(); dep[id]=d; (ch[id]||[]).forEach(c=>q.push({id:c,d:d+1})); }
+  const byD={};
+  Object.entries(dep).forEach(([id,d])=>{ byD[d]=byD[d]||[]; byD[d].push(id); });
+  const dy={}; let y=24; const md=Math.max(0,...Object.keys(byD).map(Number));
+  for(let d=0;d<=md;d++){ dy[d]=y; const ids=byD[d]||[]; const mh=Math.max(...ids.map(id=>{ const r=rs.find(x=>x.id===id); return r?nh(r):HH; })); y+=mh+VG; }
+  const pos={};
+  Object.entries(byD).forEach(([d,ids])=>{ const tw=ids.length*NW+(ids.length-1)*HG; ids.forEach((id,i)=>{ pos[id]={x:i*(NW+HG)-tw/2, y:dy[parseInt(d)]}; }); });
+  return pos;
+}
+
+function genSchema(rs) {
+  const L=[];
+  L.push('# WorkOS Fine-Grained Authorization Schema');
+  L.push('# Docs: workos.com/docs/fga');
+  L.push('');
+  L.push('version: "1"');
+  L.push('');
+  L.push('resource_types:');
+  L.push('');
+  L.push('  - type: user');
+  L.push('');
+  L.push('  - type: ai-agent');
+  L.push('    relations:');
+  L.push('      - name: principal');
+  L.push('        subjects: [user]');
+  rs.forEach(r=>{
+    const par=rs.find(x=>x.id===r.par);
+    L.push(''); L.push(`  - type: ${r.id}`);
+    if(par) L.push(`    inherit_from: ${r.par}`);
+    if(r.rels.length){ L.push('    relations:');
+      r.rels.forEach(rel=>{ L.push(`      - name: ${rel.n}`);
+        const ex=par?`, ${r.par}:${par.rels[0]?.n||'admin'}`:'';
+        L.push(`        subjects: [user, ai-agent${ex}]`);
+        if(rel.f) L.push(`        inherit_if: ${rel.f}`); }); }
+  });
+  return L.join('\n');
+}
+
+function scol(line) {
+  const t=line.trim();
+  if(t.startsWith('#')) return '#A1A1AA';
+  if(/^version:/.test(t)) return '#B45309';
+  if(/^resource_types:/.test(t)) return '#15803D';
+  if(/^- type: (user|ai-agent)/.test(t)) return '#6D28D9';
+  if(/^- type:/.test(t)) return '#4338CA';
+  if(/^inherit_from:|^inherit_if:/.test(t)) return '#6D28D9';
+  if(/^relations:/.test(t)) return '#15803D';
+  if(/^- name:/.test(t)) return '#09090B';
+  if(/^subjects:/.test(t)) return '#B45309';
+  return '#71717A';
+}
+
+function evaluate(rs, stype, rtype, action) {
+  const resource=rs.find(r=>r.id===rtype);
+  if(!resource) return {ok:false, steps:[`Resource type '${rtype}' not in model`], chain:[]};
+  const rel=resource.rels.find(r=>r.n===action);
+  if(!rel) return {ok:false, steps:[`Action '${action}' is not defined on ${rtype}`, `Add it in the left panel and try again`], chain:[]};
+  const chain=[]; let cur=rel;
+  while(cur){ chain.push(cur.n); cur=cur.f?resource.rels.find(r=>r.n===cur.f):null; }
+  const steps=[];
+  steps.push(`Locate resource type: ${rtype} \u2713`);
+  steps.push(`Check relation '${action}' exists \u2713`);
+  if(chain.length>1) steps.push(`Inheritance chain: ${chain.join(' \u2190 ')}`);
+  const par=rs.find(x=>x.id===resource.par);
+  if(par) steps.push(`Parent resource: ${par.name} \u2713`);
+  if(stype==='agent'){
+    steps.push(`Subject: AI Agent - verify scoped capability token \u2713`);
+    steps.push(`Token scope required: ${rtype}:${action}`);
+    steps.push(`Delegation chain validated via principal relation \u2713`);
+    steps.push(`Audit log entry generated \u2713`);
+    return { ok:true, chain, steps, agent:{
+      'Token scope': `${rtype}:${action}`,
+      'Audit entry': `agent/{id} acting as user/{principal} on ${rtype}:${action}`,
+      'Revocation': `Principal can revoke token at any time via WorkOS AuthKit`,
+      'MFA note': `Interactive MFA not applicable - agent uses workload identity`,
+    }};
+  }
+  steps.push(`Subject: Human user - evaluate session token \u2713`);
+  steps.push(`Standard auth flow - permission granted`);
+  return {ok:true, chain, steps};
+}
+
+function App() {
+  const [rs, setRs] = useState(DEF);
+  const [sel, setSel] = useState('organization');
+  const [tab, setTab] = useState('schema');
+  const [newRel, setNewRel] = useState('');
+  const [newRes, setNewRes] = useState('');
+  const [copied, setCopied] = useState(false);
+  const [stype, setStype] = useState('user');
+  const [tres, setTres] = useState('workspace');
+  const [tact, setTact] = useState('editor');
+  const [result, setResult] = useState(null);
+
+  const selected=rs.find(r=>r.id===sel);
+  const layout=buildLayout(rs);
+  const schema=genSchema(rs);
+  const allPos=Object.values(layout);
+  const minX=Math.min(...allPos.map(p=>p.x)), maxX=Math.max(...allPos.map(p=>p.x));
+  const cw=maxX-minX+NW, svgW=Math.max(400,cw+100);
+  const ox=(svgW-cw)/2-minX;
+  const svgH=Math.max(...rs.map(r=>{ const p=layout[r.id]; return p?p.y+nh(r):0; }))+40;
+  const getC=id=>PAL[rs.findIndex(r=>r.id===id)%PAL.length];
+  const upd=(id,u)=>setRs(prev=>prev.map(r=>r.id===id?{...r,...u}:r));
+  const addRel=()=>{ if(!newRel.trim()||!selected)return; upd(sel,{rels:[...selected.rels,{n:newRel.trim().toLowerCase().replace(/\s+/g,'_'),f:null}]}); setNewRel(''); };
+  const remRel=i=>{ if(!selected)return; upd(sel,{rels:selected.rels.filter((_,idx)=>idx!==i)}); };
+  const addRes=()=>{ if(!newRes.trim())return; const id=newRes.trim().toLowerCase().replace(/\s+/g,'_'); if(rs.find(r=>r.id===id))return; setRs(prev=>[...prev,{id,name:newRes.trim(),par:sel,rels:[{n:'owner',f:null},{n:'viewer',f:'owner'}]}]); setSel(id); setNewRes(''); };
+  const remRes=id=>{ if(rs.length<=1)return; setRs(prev=>prev.filter(r=>r.id!==id).map(r=>r.par===id?{...r,par:null}:r)); if(sel===id) setSel(rs.find(r=>r.id!==id)?.id||null); };
+  const copy=()=>{ navigator.clipboard.writeText(schema); setCopied(true); setTimeout(()=>setCopied(false),2000); };
+  const runTest=()=>setResult(evaluate(rs,stype,tres,tact));
+  const selTres=rs.find(r=>r.id===tres);
+  const actions=selTres?.rels.map(r=>r.n)||[];
+  const totalRels=rs.reduce((a,r)=>a+r.rels.length,0);
+
+  return (
+    <div style={{display:'flex',height:'100%',overflow:'hidden',background:'#F8FAFC'}}>
+      <div style={{width:238,minWidth:238,display:'flex',flexDirection:'column',borderRight:'1px solid #E4E4E7',background:'#fff',overflow:'hidden'}}>
+        <div style={{padding:'13px 13px 10px',borderBottom:'1px solid #F4F4F5'}}>
+          <div style={{fontSize:12,fontWeight:600,color:'#09090B',marginBottom:2}}>Resource types</div>
+          <div style={{fontSize:11,color:'#A1A1AA'}}>{rs.length} types · {totalRels} relations</div>
+        </div>
+        <div style={{flex:1,overflow:'auto',padding:'8px 7px 0'}}>
+          {rs.map(r=>{ const c=getC(r.id),isSel=r.id===sel;
+            return (
+              <div key={r.id} onClick={()=>setSel(r.id)} style={{display:'flex',alignItems:'center',gap:7,padding:'6px 8px',borderRadius:7,cursor:'pointer',background:isSel?c.fill:'transparent',border:`1px solid ${isSel?c.border+'44':'transparent'}`,marginBottom:2,transition:'all 0.1s'}}>
+                <div style={{width:7,height:7,borderRadius:'50%',background:c.dot,flexShrink:0}} />
+                <span style={{fontSize:13,fontWeight:isSel?600:400,color:isSel?c.text:'#09090B',flex:1,overflow:'hidden',textOverflow:'ellipsis',whiteSpace:'nowrap'}}>{r.name}</span>
+                <span style={{fontSize:11,color:'#A1A1AA'}}>{r.rels.length}</span>
+                {rs.length>1&&<button onClick={e=>{e.stopPropagation();remRes(r.id);}} style={{background:'none',border:'none',color:'#A1A1AA',padding:'0 1px',fontSize:15,lineHeight:1}}>×</button>}
+              </div>
+            );
+          })}
+        </div>
+        <div style={{padding:'8px 7px',borderTop:'1px solid #F4F4F5'}}>
+          <div style={{display:'flex',gap:5}}>
+            <input value={newRes} onChange={e=>setNewRes(e.target.value)} onKeyDown={e=>e.key==='Enter'&&addRes()} placeholder="Add resource type..." style={{flex:1}} />
+            <button onClick={addRes} style={{background:'#6366F1',border:'1px solid #6366F1',color:'#fff',fontWeight:700,padding:'5px 10px'}}>+</button>
+          </div>
+        </div>
+        {selected&&(
+          <div style={{borderTop:'1px solid #F4F4F5',padding:'10px 7px',maxHeight:255,overflow:'auto',background:'#FAFAFA'}}>
+            <div className="lbl" style={{paddingLeft:4,marginBottom:7}}>Editing: {selected.name}</div>
+            <div style={{marginBottom:8}}>
+              <div style={{fontSize:11,color:'#71717A',marginBottom:3}}>Inherits from</div>
+              <select value={selected.par||''} onChange={e=>upd(sel,{par:e.target.value||null})} style={{width:'100%'}}>
+                <option value="">no parent (root type)</option>
+                {rs.filter(r=>r.id!==sel).map(r=><option key={r.id} value={r.id}>{r.name}</option>)}
+              </select>
+            </div>
+            <div style={{fontSize:11,color:'#71717A',marginBottom:5}}>Relations</div>
+            {selected.rels.map((rel,i)=>(
+              <div key={i} style={{display:'flex',alignItems:'center',gap:5,background:'#fff',borderRadius:6,padding:'5px 7px',marginBottom:3,border:'1px solid #E4E4E7'}}>
+                <span style={{fontSize:12,flex:1,color:'#09090B',fontFamily:'monospace'}}>{rel.n}</span>
+                <select value={rel.f||''} onChange={e=>{const rels=selected.rels.map((r,idx)=>idx===i?{...r,f:e.target.value||null}:r);upd(sel,{rels});}} style={{fontSize:10,padding:'2px 4px',maxWidth:88}}>
+                  <option value="">no inherit</option>
+                  {selected.rels.filter((_,idx)=>idx!==i).map(r=><option key={r.n} value={r.n}>\u21b3 {r.n}</option>)}
+                </select>
+                <button onClick={()=>remRel(i)} style={{background:'none',border:'none',color:'#A1A1AA',padding:0,fontSize:14}}>×</button>
+              </div>
+            ))}
+            <div style={{display:'flex',gap:5,marginTop:6}}>
+              <input value={newRel} onChange={e=>setNewRel(e.target.value)} onKeyDown={e=>e.key==='Enter'&&addRel()} placeholder="relation name..." style={{flex:1}} />
+              <button onClick={addRel}>Add</button>
+            </div>
+          </div>
+        )}
+      </div>
+
+      <div style={{flex:1,overflow:'auto',background:'#F8FAFC',backgroundImage:'radial-gradient(circle, #D4D4D8 1px, transparent 1px)',backgroundSize:'24px 24px'}}>
+        <svg width={svgW} height={svgH} style={{display:'block',minWidth:'100%'}}>
+          {rs.map(r=>{
+            if(!r.par||!layout[r.par]||!layout[r.id]) return null;
+            const pp=layout[r.par],cp=layout[r.id],par=rs.find(x=>x.id===r.par),c=getC(r.id);
+            const x1=pp.x+ox+NW/2,y1=pp.y+(par?nh(par):HH),x2=cp.x+ox+NW/2,y2=cp.y,my=(y1+y2)/2;
+            return <g key={`c-${r.par}-${r.id}`}><path d={`M${x1} ${y1} C${x1} ${my} ${x2} ${my} ${x2} ${y2}`} fill="none" stroke={c.border} strokeWidth={1.5} strokeDasharray="5 5" strokeOpacity={0.5}/><circle cx={x2} cy={y2} r={3} fill={c.border} opacity={0.7}/></g>;
+          })}
+          {rs.map(r=>{
+            if(!layout[r.id]) return null;
+            const {x,y}=layout[r.id],nx=x+ox,rh=nh(r),c=getC(r.id),isSel=r.id===sel;
+            return (
+              <g key={`n-${r.id}`} onClick={()=>setSel(r.id)} style={{cursor:'pointer'}}>
+                {isSel&&<rect x={nx-2} y={y-2} width={NW+4} height={rh+4} rx={10} fill={c.border} fillOpacity={0.1}/>}
+                <rect x={nx} y={y} width={NW} height={rh} rx={8} fill={c.fill} stroke={c.border} strokeWidth={isSel?2:1} strokeOpacity={isSel?1:0.4}/>
+                <rect x={nx} y={y} width={NW} height={HH} rx={8} fill={c.border} fillOpacity={0.1}/>
+                <rect x={nx} y={y+HH-6} width={NW} height={6} fill={c.border} fillOpacity={0.1}/>
+                <circle cx={nx+13} cy={y+HH/2} r={4} fill={c.dot}/>
+                <text x={nx+24} y={y+HH/2+4} fill={c.text} fontSize={12} fontWeight={600} fontFamily="'Inter',sans-serif">{r.name}</text>
+                {r.rels.map((rel,i)=>(
+                  <text key={rel.n} x={nx+12} y={y+HH+i*RH+14} fill={c.text} fontSize={10.5} fillOpacity={0.8} fontFamily="'Courier New',monospace">
+                    {rel.n}{rel.f?` (\u21b3 ${rel.f})`:''}
+                  </text>
+                ))}
+              </g>
+            );
+          })}
+        </svg>
+      </div>
+
+      <div style={{width:300,minWidth:300,display:'flex',flexDirection:'column',borderLeft:'1px solid #E4E4E7',background:'#fff',overflow:'hidden'}}>
+        <div style={{display:'flex',borderBottom:'1px solid #F4F4F5'}}>
+          <button className={`tab${tab==='schema'?' on':''}`} onClick={()=>setTab('schema')}>Schema</button>
+          <button className={`tab${tab==='test'?' on':''}`} onClick={()=>setTab('test')}>Permission tester</button>
+        </div>
+
+        {tab==='schema'&&(<>
+          <div style={{padding:'9px 13px',borderBottom:'1px solid #F4F4F5',display:'flex',alignItems:'center',justifyContent:'space-between'}}>
+            <span style={{fontSize:11,color:'#71717A',fontFamily:'monospace'}}>fga-schema.yaml</span>
+            <div style={{display:'flex',gap:6,alignItems:'center'}}>
+              <span style={{fontSize:10,fontWeight:600,padding:'2px 8px',borderRadius:999,background:'#EEF2FF',color:'#4338CA',border:'1px solid #C7D2FE'}}>WorkOS FGA</span>
+              <button onClick={copy} style={{fontSize:11,padding:'3px 10px',background:copied?'#F0FDF4':'',borderColor:copied?'#16A34A':'#D4D4D8',color:copied?'#15803D':'#09090B'}}>{copied?'Copied':'Copy'}</button>
+            </div>
+          </div>
+          <div style={{flex:1,overflow:'auto',padding:'11px 13px',background:'#FAFAFA'}}>
+            <pre style={{margin:0,fontSize:11,fontFamily:"'Courier New',monospace",lineHeight:1.75,whiteSpace:'pre'}}>
+              {schema.split('\n').map((line,i)=>(
+                <div key={i} style={{color:scol(line)}}>
+                  <span style={{userSelect:'none',color:'#D4D4D8',marginRight:10,display:'inline-block',minWidth:20,textAlign:'right',fontSize:9.5}}>{i+1}</span>
+                  {line||' '}
+                </div>
+              ))}
+            </pre>
+          </div>
+          <div style={{padding:'8px 13px',borderTop:'1px solid #F4F4F5',display:'flex',justifyContent:'space-between',alignItems:'center'}}>
+            <span style={{fontSize:10.5,color:'#A1A1AA'}}>{rs.length} types · {totalRels} relations</span>
+            <a href="https://workos.com/docs/fga" target="_blank" rel="noreferrer" style={{fontSize:10.5,color:'#6366F1',textDecoration:'none'}}>docs</a>
+          </div>
+        </>)}
+
+        {tab==='test'&&(
+          <div style={{flex:1,overflow:'auto',padding:'14px 13px',display:'flex',flexDirection:'column',gap:11}}>
+            <div>
+              <div className="lbl">Subject type</div>
+              <div style={{display:'flex',gap:7}}>
+                {['user','agent'].map(t=>(
+                  <button key={t} onClick={()=>{setStype(t);setResult(null);}} style={{flex:1,padding:'8px 0',fontWeight:600,fontSize:12,background:stype===t?(t==='agent'?'#FAF5FF':'#EEF2FF'):'#F4F4F5',border:`1.5px solid ${stype===t?(t==='agent'?'#7C3AED':'#6366F1'):'#D4D4D8'}`,color:stype===t?(t==='agent'?'#6D28D9':'#4338CA'):'#71717A',borderRadius:7}}>
+                    {t==='user'?'Human user':'AI agent'}
+                  </button>
+                ))}
+              </div>
+              {stype==='agent'&&<div style={{marginTop:7,padding:'7px 9px',background:'#FAF5FF',borderRadius:6,border:'1px solid #E9D5FF',fontSize:11,color:'#6D28D9',lineHeight:1.5}}>Agents cannot complete interactive MFA. They authenticate via scoped capability tokens with a delegating human principal.</div>}
+            </div>
+            <div style={{display:'flex',gap:8}}>
+              <div style={{flex:1}}>
+                <div className="lbl">Resource</div>
+                <select value={tres} onChange={e=>{setTres(e.target.value);setResult(null);setTact(rs.find(r=>r.id===e.target.value)?.rels[0]?.n||'');}} style={{width:'100%'}}>
+                  {rs.map(r=><option key={r.id} value={r.id}>{r.name}</option>)}
+                </select>
+              </div>
+              <div style={{flex:1}}>
+                <div className="lbl">Action</div>
+                <select value={tact} onChange={e=>{setTact(e.target.value);setResult(null);}} style={{width:'100%'}}>
+                  {actions.map(a=><option key={a} value={a}>{a}</option>)}
+                  <option value="delete">delete (undefined)</option>
+                </select>
+              </div>
+            </div>
+            <button onClick={runTest} style={{background:'#09090B',border:'1px solid #09090B',color:'#fff',fontWeight:600,fontSize:13,padding:'8px 0',borderRadius:7,width:'100%'}}>
+              Evaluate permission
+            </button>
+
+            {result&&(<>
+              <div style={{padding:'10px 12px',borderRadius:8,background:result.ok?'#F0FDF4':'#FFF1F2',border:`1.5px solid ${result.ok?'#16A34A':'#DC2626'}`,display:'flex',alignItems:'center',gap:10}}>
+                <div style={{fontSize:20,lineHeight:1}}>{result.ok?'✓':'✗'}</div>
+                <div>
+                  <div style={{fontSize:13,fontWeight:700,color:result.ok?'#15803D':'#B91C1C'}}>{result.ok?'GRANTED':'DENIED'}</div>
+                  <div style={{fontSize:11,color:result.ok?'#16A34A':'#DC2626',marginTop:1}}>{stype==='user'?'Human user':'AI agent'} · {tact} on {tres}</div>
+                </div>
+              </div>
+              {result.chain?.length>0&&(
+                <div>
+                  <div className="lbl">Inheritance chain</div>
+                  <div style={{display:'flex',alignItems:'center',gap:4,flexWrap:'wrap'}}>
+                    {result.chain.map((r,i)=>(
+                      <span key={r} style={{display:'flex',alignItems:'center',gap:4}}>
+                        <span style={{fontSize:11,fontWeight:600,padding:'2px 9px',borderRadius:999,background:'#EEF2FF',color:'#4338CA',border:'1px solid #C7D2FE'}}>{r}</span>
+                        {i<result.chain.length-1&&<span style={{color:'#A1A1AA',fontSize:11}}>\u2190</span>}
+                      </span>
+                    ))}
+                  </div>
+                </div>
+              )}
+              <div>
+                <div className="lbl">Evaluation steps</div>
+                {result.steps.map((s,i)=>(
+                  <div key={i} style={{fontSize:11,color:'#71717A',padding:'4px 0',borderBottom:'1px solid #F4F4F5',lineHeight:1.5}}>{s}</div>
+                ))}
+              </div>
+              {result.agent&&(
+                <div style={{background:'#FAF5FF',border:'1px solid #E9D5FF',borderRadius:8,padding:'10px 11px'}}>
+                  <div style={{fontSize:11,fontWeight:700,color:'#6D28D9',marginBottom:8}}>Agent identity requirements</div>
+                  {Object.entries(result.agent).map(([k,v])=>(
+                    <div key={k} style={{marginBottom:6}}>
+                      <div style={{fontSize:10,fontWeight:600,color:'#7C3AED',textTransform:'uppercase',letterSpacing:'0.5px',marginBottom:2}}>{k}</div>
+                      <div style={{fontSize:11,color:'#4C1D95',fontFamily:'monospace',background:'#EDE9FE',padding:'3px 8px',borderRadius:4,lineHeight:1.5}}>{v}</div>
+                    </div>
+                  ))}
+                </div>
+              )}
+            </>)}
+            {!result&&<div style={{textAlign:'center',color:'#A1A1AA',fontSize:12,padding:'16px 0',lineHeight:1.7}}>Select a subject type, resource,<br/>and action then evaluate</div>}
+          </div>
+        )}
+      </div>
+    </div>
+  );
+}
+
+ReactDOM.createRoot(document.getElementById('tool-root')).render(<App/>);
+</script>
+</body>
+</html>
